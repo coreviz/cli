@@ -1,0 +1,27 @@
+{
+  "name": "@coreviz/cli",
+  "version": "1.0.0",
+  "description": "CoreViz CLI tool",
+  "main": "index.js",
+  "bin": {
+    "coreviz": "./bin/cli.js"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/CoreViz/cli.git"
+  },
+  "keywords": [
+    "cli",
+    "coreviz",
+    "command-line"
+  ],
+  "author": "CoreViz Team",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/CoreViz/cli/issues"
+  },
+  "homepage": "https://github.com/CoreViz/cli#readme"
+}
