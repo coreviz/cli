@@ -9,7 +9,7 @@ import process from 'process';
 import { intro, outro, confirm, isCancel, cancel, text } from '@clack/prompts';
 import chalk from 'chalk';
 import yoctoSpinner from 'yocto-spinner';
-import { edit, describe } from '@coreviz/sdk';
+import { CoreViz } from '@coreviz/sdk';
 import fs from 'fs';
 import path from 'path';
 
@@ -233,9 +233,9 @@ program.command('edit <image-path>')
         try {
             const base64Image = readImageAsBase64(imagePath);
 
-            const resultBase64 = await edit(base64Image, {
-                prompt,
-                token: session.access_token
+            const coreviz = new CoreViz({ token: session.access_token });
+            const resultBase64 = await coreviz.edit(base64Image, {
+                prompt
             });
 
             spinner.stop();
@@ -275,9 +275,8 @@ program.command('describe <image-path>')
 
         try {
             const base64Image = readImageAsBase64(imagePath);
-            const description = await describe(base64Image, {
-                token: session.access_token
-            });
+            const coreviz = new CoreViz({ token: session.access_token });
+            const description = await coreviz.describe(base64Image);
 
             spinner.stop();
 
@@ -293,6 +292,125 @@ program.command('describe <image-path>')
             process.exit(1);
         }
     });
+
+program.command('search <query>')
+    .description('Search for images in the current directory using AI')
+    .action(async (query) => {
+        intro(chalk.bgHex('#663399').white('CoreViz'));
+
+        const session = config.get('session');
+        if (!session || !session.access_token) {
+            cancel('You are not logged in. Please run `coreviz login` first.');
+            process.exit(1);
+        }
+
+        const spinner = yoctoSpinner({ text: "Indexing directory..." });
+        spinner.start();
+
+        const indexFile = path.join(process.cwd(), '.coreviz-index.json');
+        let index = {};
+        if (fs.existsSync(indexFile)) {
+            try {
+                index = JSON.parse(fs.readFileSync(indexFile, 'utf-8'));
+            } catch (e) {
+                // Ignore corrupted index
+            }
+        }
+
+        const imageExtensions = ['.jpg', '.jpeg', '.png', '.webp', '.gif', '.bmp', '.tiff'];
+        const files = fs.readdirSync(process.cwd())
+            .filter(file => imageExtensions.includes(path.extname(file).toLowerCase()));
+
+        if (files.length === 0) {
+            spinner.stop();
+            cancel('No images found in the current directory.');
+            process.exit(0);
+        }
+
+        const coreviz = new CoreViz({ token: session.access_token });
+        let newIndexedCount = 0;
+
+        for (const file of files) {
+            const filePath = path.join(process.cwd(), file);
+            const stats = fs.statSync(filePath);
+            const mtime = stats.mtimeMs;
+
+            // Skip if already indexed and not modified
+            if (index[file] && index[file].mtime === mtime) {
+                continue;
+            }
+
+            spinner.text = `Indexing ${file}...`;
+
+            try {
+                const base64Image = readImageAsBase64(filePath);
+                const { embedding } = await coreviz.embed(base64Image, { type: 'image' });
+
+                index[file] = {
+                    embedding,
+                    mtime
+                };
+                newIndexedCount++;
+            } catch (error) {
+                // Log error but continue
+                console.error(`Failed to index ${file}: ${error.message}`);
+            }
+        }
+
+        // Save index
+        fs.writeFileSync(indexFile, JSON.stringify(index, null, 2));
+
+        spinner.text = "Processing search query...";
+
+        try {
+            const { embedding: queryEmbedding } = await coreviz.embed(query, { type: 'text' });
+
+            const results = [];
+            for (const [file, data] of Object.entries(index)) {
+                if (!data.embedding) continue;
+
+                // Calculate cosine similarity
+                const similarity = cosineSimilarity(queryEmbedding, data.embedding);
+                results.push({ file, similarity });
+            }
+
+            // Sort by similarity descending
+            results.sort((a, b) => b.similarity - a.similarity);
+
+            spinner.stop();
+
+            outro(chalk.green(`✅ Search results for "${query}"`));
+
+            // Show top 5 results
+            results.slice(0, 5).forEach((result, i) => {
+                const score = (result.similarity * 100).toFixed(1);
+                console.log(`${i + 1}. ${chalk.bold(result.file)} ${chalk.gray(`(${score}%)`)}`);
+            });
+
+        } catch (error) {
+            spinner.stop();
+            cancel(`Search failed: ${error.message}`);
+            process.exit(1);
+        }
+    });
+
+function cosineSimilarity(vecA, vecB) {
+    if (vecA.length !== vecB.length) return 0;
+
+    let dotProduct = 0;
+    let normA = 0;
+    let normB = 0;
+
+    for (let i = 0; i < vecA.length; i++) {
+        dotProduct += vecA[i] * vecB[i];
+        normA += vecA[i] * vecA[i];
+        normB += vecB[i] * vecB[i];
+    }
+
+    if (normA === 0 || normB === 0) return 0;
+
+    return dotProduct / (Math.sqrt(normA) * Math.sqrt(normB));
+}
 
 function readImageAsBase64(imagePath) {
     const imageBuffer = fs.readFileSync(imagePath);
