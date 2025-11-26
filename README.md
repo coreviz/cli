@@ -12,16 +12,47 @@ npm install -g @coreviz/cli
 
 ```bash
 # Run directly with npx
-npx @coreviz/cli
+npx @coreviz/cli [command]
 
 # Or if installed globally
-coreviz
+coreviz [command]
+```
+
+## Commands
+
+### Authentication
+
+Login to CoreViz using device authorization:
+
+```bash
+coreviz login
+```
+
+Logout:
+
+```bash
+coreviz logout
+```
+
+Check login status:
+
+```bash
+coreviz whoami
 ```
 
 ## Development
 
-This is currently a placeholder CLI tool. The actual functionality will be implemented soon.
+1. Install dependencies:
+   ```bash
+   cd cli
+   npm install
+   ```
+
+2. Run local CLI:
+   ```bash
+   node bin/cli.js --help
+   ```
 
 ## License
 
-MIT 
+MIT

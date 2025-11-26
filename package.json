@@ -1,6 +1,7 @@
 {
   "name": "@coreviz/cli",
-  "version": "1.0.0",
+  "version": "1.0.1",
+  "type": "module",
   "description": "CoreViz CLI tool",
   "main": "index.js",
   "bin": {
@@ -23,5 +24,15 @@
   "bugs": {
     "url": "https://github.com/CoreViz/cli/issues"
   },
-  "homepage": "https://github.com/CoreViz/cli#readme"
+  "homepage": "https://github.com/CoreViz/cli#readme",
+  "dependencies": {
+    "@clack/prompts": "^0.11.0",
+    "better-auth": "^1.4.2",
+    "chalk": "^5.6.2",
+    "commander": "^14.0.2",
+    "conf": "^15.0.2",
+    "dotenv": "^17.2.3",
+    "open": "^11.0.0",
+    "yocto-spinner": "^1.0.0"
+  }
 }
