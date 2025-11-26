@@ -198,7 +198,7 @@ program.command('edit <image-path>')
     .description('Edit an image using AI')
     .option('-p, --prompt <prompt>', 'Text description of the desired edit')
     .action(async (imagePath, options) => {
-        intro(chalk.bgHex('#663399').white('CoreViz AI Edit'));
+        intro(chalk.bgHex('#663399').white('CoreViz'));
 
         const session = config.get('session');
         if (!session || !session.access_token) {
