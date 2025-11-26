@@ -25,19 +25,19 @@ coreviz [command]
 Login to CoreViz using device authorization:
 
 ```bash
-coreviz login
+npx @coreviz/cli login
 ```
 
 Logout:
 
 ```bash
-coreviz logout
+npx @coreviz/cli logout
 ```
 
 Check login status:
 
 ```bash
-coreviz whoami
+npx @coreviz/cli whoami
 ```
 
 ### AI Features
@@ -45,19 +45,19 @@ coreviz whoami
 Describe an image:
 
 ```bash
-coreviz describe path/to/image.jpg
+npx @coreviz/cli describe path/to/image.jpg
 ```
 
 Edit an image with a text prompt:
 
 ```bash
-coreviz edit path/to/image.jpg --prompt "make it cyberpunk style"
+npx @coreviz/cli edit path/to/image.jpg --prompt "make it cyberpunk style"
 ```
 
 Search local images using natural language:
 
 ```bash
-coreviz search "a document with a red header"
+npx @coreviz/cli search "a person wearing a red t-shirt"
 ```
 
 This will index the images in your current directory (creating a `.index.db` file) and return the top matches for your query.
