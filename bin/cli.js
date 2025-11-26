@@ -361,7 +361,7 @@ program.command('search <query>')
 
             try {
                 const base64Image = readImageAsBase64(filePath);
-                const { embedding } = await coreviz.embed(base64Image, { type: 'image' });
+                const { embedding } = await coreviz.embed(base64Image, { type: 'image', mode: 'local' });
 
                 upsertFile.run(file, mtime, JSON.stringify(embedding));
             } catch (error) {
