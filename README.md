@@ -52,7 +52,7 @@ npx @coreviz/cli describe path/to/image.jpg
 
 
 
-Edit an image with a text prompt:
+Edit an image with a text prompt (🍌 Nano Banan + Flux Kontext in the CLI!):
 
 ```bash
 npx @coreviz/cli edit path/to/image.jpg --prompt "make it cyberpunk style"
