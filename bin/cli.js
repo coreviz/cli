@@ -12,6 +12,7 @@ import yoctoSpinner from 'yocto-spinner';
 import { CoreViz } from '@coreviz/sdk';
 import fs from 'fs';
 import path from 'path';
+import Database from 'better-sqlite3';
 
 dotenv.config();
 
@@ -307,15 +308,17 @@ program.command('search <query>')
         const spinner = yoctoSpinner({ text: "Indexing directory..." });
         spinner.start();
 
-        const indexFile = path.join(process.cwd(), '.coreviz-index.json');
-        let index = {};
-        if (fs.existsSync(indexFile)) {
-            try {
-                index = JSON.parse(fs.readFileSync(indexFile, 'utf-8'));
-            } catch (e) {
-                // Ignore corrupted index
-            }
-        }
+        const dbPath = path.join(process.cwd(), '.index.db');
+        const db = new Database(dbPath);
+
+        // Initialize DB
+        db.prepare(`
+            CREATE TABLE IF NOT EXISTS images (
+                path TEXT PRIMARY KEY,
+                mtime REAL,
+                embedding TEXT
+            )
+        `).run();
 
         const imageExtensions = ['.jpg', '.jpeg', '.png', '.webp', '.gif', '.bmp', '.tiff'];
         const files = fs.readdirSync(process.cwd())
@@ -328,15 +331,29 @@ program.command('search <query>')
         }
 
         const coreviz = new CoreViz({ token: session.access_token });
-        let newIndexedCount = 0;
+
+        // Prepare statements
+        const getFile = db.prepare('SELECT mtime FROM images WHERE path = ?');
+        const upsertFile = db.prepare('INSERT OR REPLACE INTO images (path, mtime, embedding) VALUES (?, ?, ?)');
+        const deleteFile = db.prepare('DELETE FROM images WHERE path = ?');
+
+        // Clean up deleted files from index
+        const allIndexedFiles = db.prepare('SELECT path FROM images').all();
+        for (const row of allIndexedFiles) {
+            if (!files.includes(row.path)) {
+                deleteFile.run(row.path);
+            }
+        }
 
         for (const file of files) {
             const filePath = path.join(process.cwd(), file);
             const stats = fs.statSync(filePath);
             const mtime = stats.mtimeMs;
 
+            const existing = getFile.get(file);
+
             // Skip if already indexed and not modified
-            if (index[file] && index[file].mtime === mtime) {
+            if (existing && existing.mtime === mtime) {
                 continue;
             }
 
@@ -346,32 +363,29 @@ program.command('search <query>')
                 const base64Image = readImageAsBase64(filePath);
                 const { embedding } = await coreviz.embed(base64Image, { type: 'image' });
 
-                index[file] = {
-                    embedding,
-                    mtime
-                };
-                newIndexedCount++;
+                upsertFile.run(file, mtime, JSON.stringify(embedding));
             } catch (error) {
                 // Log error but continue
                 console.error(`Failed to index ${file}: ${error.message}`);
             }
         }
 
-        // Save index
-        fs.writeFileSync(indexFile, JSON.stringify(index, null, 2));
-
         spinner.text = "Processing search query...";
 
         try {
             const { embedding: queryEmbedding } = await coreviz.embed(query, { type: 'text' });
 
+            const rows = db.prepare('SELECT path, embedding FROM images').all();
             const results = [];
-            for (const [file, data] of Object.entries(index)) {
-                if (!data.embedding) continue;
+
+            for (const row of rows) {
+                if (!row.embedding) continue;
+
+                const fileEmbedding = JSON.parse(row.embedding);
 
                 // Calculate cosine similarity
-                const similarity = cosineSimilarity(queryEmbedding, data.embedding);
-                results.push({ file, similarity });
+                const similarity = cosineSimilarity(queryEmbedding, fileEmbedding);
+                results.push({ file: row.path, similarity });
             }
 
             // Sort by similarity descending
@@ -391,6 +405,8 @@ program.command('search <query>')
             spinner.stop();
             cancel(`Search failed: ${error.message}`);
             process.exit(1);
+        } finally {
+            db.close();
         }
     });
 

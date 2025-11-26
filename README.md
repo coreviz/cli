@@ -40,6 +40,28 @@ Check login status:
 coreviz whoami
 ```
 
+### AI Features
+
+Describe an image:
+
+```bash
+coreviz describe path/to/image.jpg
+```
+
+Edit an image with a text prompt:
+
+```bash
+coreviz edit path/to/image.jpg --prompt "make it cyberpunk style"
+```
+
+Search local images using natural language:
+
+```bash
+coreviz search "a document with a red header"
+```
+
+This will index the images in your current directory (creating a `.index.db` file) and return the top matches for your query.
+
 ## Development
 
 1. Install dependencies:
