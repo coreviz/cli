@@ -58,6 +58,8 @@ Edit an image with a text prompt:
 npx @coreviz/cli edit path/to/image.jpg --prompt "make it cyberpunk style"
 ```
 
+![Screenshot of CoreViz CLI editing an image using AI.](./screenshots/edit.png)
+
 Search local images using natural language:
 
 ```bash

@@ -373,7 +373,7 @@ program.command('search <query>')
         spinner.text = "Processing search query...";
 
         try {
-            const { embedding: queryEmbedding } = await coreviz.embed(query, { type: 'text' });
+            const { embedding: queryEmbedding } = await coreviz.embed(query, { type: 'text', mode: 'local' });
 
             const rows = db.prepare('SELECT path, embedding FROM images').all();
             const results = [];
