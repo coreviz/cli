@@ -14,7 +14,7 @@ import fs from 'fs';
 import path from 'path';
 import Database from 'better-sqlite3';
 
-dotenv.config();
+dotenv.config({ quiet: true });
 
 const config = new Conf({ projectName: 'coreviz-cli' });
 const program = new Command();

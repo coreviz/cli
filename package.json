@@ -1,6 +1,6 @@
 {
   "name": "@coreviz/cli",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "type": "module",
   "description": "CoreViz CLI tool",
   "main": "index.js",
@@ -27,8 +27,9 @@
   "homepage": "https://github.com/CoreViz/cli#readme",
   "dependencies": {
     "@clack/prompts": "^0.11.0",
-    "@coreviz/sdk": "file:../sdk",
+    "@coreviz/sdk": "^1.0.3",
     "better-auth": "^1.4.2",
+    "better-sqlite3": "^12.4.6",
     "chalk": "^5.6.2",
     "commander": "^14.0.2",
     "conf": "^15.0.2",
