@@ -83,7 +83,3 @@ This will index the images in your current directory (creating a `.index.db` fil
    ```bash
    node bin/cli.js --help
    ```
-
-## License
-
-MIT
