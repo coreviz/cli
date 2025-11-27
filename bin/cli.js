@@ -528,7 +528,7 @@ program.command('search <query>')
                     spinner.text = "On the first run, it might take a few minutes to load the local model, please wait...";
                 }
             }, 8000);
-            await coreviz.embedLocal('text', { type: 'text', mode: mode });
+            await coreviz.embed('text', { type: 'text', mode: mode });
             if (spinner) spinner.stop();
         }
 

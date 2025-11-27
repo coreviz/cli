@@ -27,7 +27,7 @@
   "homepage": "https://github.com/CoreViz/cli#readme",
   "dependencies": {
     "@clack/prompts": "^0.11.0",
-    "@coreviz/sdk": "../sdk",
+    "@coreviz/sdk": "^1.0.10",
     "better-auth": "^1.4.2",
     "better-sqlite3": "^12.4.6",
     "chalk": "^5.6.2",
