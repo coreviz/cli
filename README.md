@@ -167,11 +167,12 @@ npx @coreviz/cli whoami
 
 | Tool | Description |
 |------|-------------|
-| `list_datasets` | List all collections in your workspace |
+| `list_collections` | List all collections in your workspace |
+| `create_collection` | Create a new collection |
 | `browse_media` | Navigate folders and list media items |
 | `search_media` | Semantic search across all your media |
 | `get_media` | Get full details, tags, and detected objects for an item |
-| `get_tags` | Aggregate all tags across a dataset |
+| `get_tags` | Aggregate all tags across a collection |
 | `find_similar` | Find visually similar images by object ID |
 | `analyze_image` | Run AI vision analysis on an image URL |
 | `create_folder` | Create a new folder |
@@ -179,7 +180,7 @@ npx @coreviz/cli whoami
 | `rename_item` | Rename a file or folder |
 | `add_tag` | Add a tag to a media item |
 | `remove_tag` | Remove a tag from a media item |
-| `upload_media` | Upload a local photo or video file to a dataset |
+| `upload_media` | Upload a local photo or video file to a collection |
 
 ### Local development override
 
