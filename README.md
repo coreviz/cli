@@ -138,6 +138,72 @@ Check login status:
 npx @coreviz/cli whoami
 ```
 
+## MCP Server (Claude Code Integration)
+
+`@coreviz/cli` includes a built-in MCP server that exposes your CoreViz visual library as tools for Claude Code and other MCP-compatible AI agents — turning CoreViz into a **visual memory** for your AI workflows.
+
+### Setup
+
+1. Login (if you haven't already):
+   ```bash
+   npx @coreviz/cli login
+   ```
+
+2. Add to your project's `.mcp.json`:
+   ```json
+   {
+     "mcpServers": {
+       "coreviz": {
+         "command": "npx",
+         "args": ["coreviz-mcp"]
+       }
+     }
+   }
+   ```
+
+3. In Claude Code, run `/mcp` to confirm the server is connected.
+
+### Available MCP Tools
+
+| Tool | Description |
+|------|-------------|
+| `list_datasets` | List all collections in your workspace |
+| `browse_media` | Navigate folders and list media items |
+| `search_media` | Semantic search across all your media |
+| `get_media` | Get full details, tags, and detected objects for an item |
+| `get_tags` | Aggregate all tags across a dataset |
+| `find_similar` | Find visually similar images by object ID |
+| `analyze_image` | Run AI vision analysis on an image URL |
+| `create_folder` | Create a new folder |
+| `move_item` | Move a file or folder |
+| `rename_item` | Rename a file or folder |
+| `add_tag` | Add a tag to a media item |
+| `remove_tag` | Remove a tag from a media item |
+| `upload_media` | Upload a local photo or video file to a dataset |
+
+### Local development override
+
+```json
+{
+  "mcpServers": {
+    "coreviz": {
+      "command": "node",
+      "args": ["/path/to/@coreviz/cli/bin/mcp.js"],
+      "env": {
+        "COREVIZ_API_URL": "http://localhost:3000"
+      }
+    }
+  }
+}
+```
+
+You can also authenticate via environment variable instead of `coreviz login`:
+```bash
+COREVIZ_API_KEY=your_key npx coreviz-mcp
+```
+
+---
+
 ## Development
 
 1. Install dependencies:
@@ -149,4 +215,9 @@ npx @coreviz/cli whoami
 2. Run local CLI:
    ```bash
    node bin/cli.js --help
+   ```
+
+3. Run local MCP server:
+   ```bash
+   node bin/mcp.js
    ```
