@@ -6,8 +6,7 @@
   "main": "index.js",
   "bin": {
     "coreviz": "./bin/cli.js",
-    "mcp": "./bin/mcp.js",
-    "cli": "./bin/cli.js"
+    "coreviz-mcp": "./bin/mcp.js"
   },
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"

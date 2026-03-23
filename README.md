@@ -149,17 +149,40 @@ npx @coreviz/cli whoami
    npx @coreviz/cli login
    ```
 
-2. Add to your project's `.mcp.json`:
-   ```json
-   {
-     "mcpServers": {
-       "coreviz": {
-         "command": "npx",
-         "args": ["coreviz-mcp"]
-       }
-     }
-   }
-   ```
+2. Connect to your MCP client:
+
+**Claude Code** — Install the plugin (recommended):
+
+```bash
+claude plugin marketplace add coreviz/cli
+claude plugin install coreviz@coreviz
+```
+
+Or configure MCP manually in `~/.claude/settings.json`:
+
+```json
+{
+  "mcpServers": {
+    "coreviz": {
+      "command": "npx",
+      "args": ["coreviz-mcp"]
+    }
+  }
+}
+```
+
+**Claude Desktop** — Add to `~/Library/Application Support/Claude/claude_desktop_config.json`:
+
+```json
+{
+  "mcpServers": {
+    "coreviz": {
+      "command": "npx",
+      "args": ["coreviz-mcp"]
+    }
+  }
+}
+```
 
 3. In Claude Code, run `/mcp` to confirm the server is connected.
 

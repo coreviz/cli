@@ -9,7 +9,7 @@
  *   Add to .mcp.json:
  *   {
  *     "mcpServers": {
- *       "coreviz": { "command": "npx", "args": ["coreviz-mcp"] }
+ *       "coreviz": { "command": "npx", "args": ["@coreviz/cli", "mcp"] }
  *     }
  *   }
  */
@@ -33,7 +33,7 @@ async function main() {
 
     if (!token && !apiKey) {
         process.stderr.write(
-            '[coreviz-mcp] Not authenticated. Run `coreviz login` first, ' +
+            '[mcp] Not authenticated. Run `coreviz login` first, ' +
             'or set COREVIZ_API_KEY environment variable.\n'
         );
         process.exit(1);
@@ -54,10 +54,10 @@ async function main() {
     const transport = new StdioServerTransport();
     await server.connect(transport);
 
-    process.stderr.write('[coreviz-mcp] Server ready\n');
+    process.stderr.write('[mcp] Server ready\n');
 }
 
 main().catch((err) => {
-    process.stderr.write(`[coreviz-mcp] Fatal error: ${err?.message || err}\n`);
+    process.stderr.write(`[mcp] Fatal error: ${err?.message || err}\n`);
     process.exit(1);
 });
