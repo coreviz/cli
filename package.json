@@ -6,7 +6,7 @@
   "main": "index.js",
   "bin": {
     "coreviz": "./bin/cli.js",
-    "coreviz-mcp": "./bin/mcp.js",
+    "mcp": "./bin/mcp.js",
     "cli": "./bin/cli.js"
   },
   "scripts": {
