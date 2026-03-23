@@ -1,0 +1,37 @@
+{
+  "name": "coreviz",
+  "owner": {
+    "name": "coreviz"
+  },
+  "metadata": {
+    "description": "CoreViz plugin marketplace — AI-powered visual asset management tools for Claude Code and other MCP clients.",
+    "version": "1.4.0"
+  },
+  "plugins": [
+    {
+      "name": "coreviz",
+      "source": {
+        "source": "github",
+        "repo": "coreviz/cli"
+      },
+      "description": "AI-powered visual asset management for Claude Code. Search, tag, analyze, edit, and organize your media library using natural language.",
+      "version": "1.4.0",
+      "author": {
+        "name": "coreviz"
+      },
+      "homepage": "https://github.com/coreviz/cli#readme",
+      "repository": "https://github.com/coreviz/cli",
+      "license": "MIT",
+      "keywords": [
+        "media",
+        "images",
+        "visual",
+        "assets",
+        "search",
+        "tagging",
+        "AI"
+      ],
+      "category": "media"
+    }
+  ]
+}
