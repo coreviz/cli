@@ -1,7 +1,7 @@
 {
   "name": "coreviz",
   "description": "AI-powered visual asset management for Claude Code. Search, tag, analyze, edit, and organize your media library using natural language.",
-  "version": "1.4.0",
+  "version": "1.5.1",
   "author": {
     "name": "coreviz"
   },
@@ -20,9 +20,11 @@
   "category": "media",
   "mcpServers": {
     "coreviz": {
-      "command": "node",
+      "command": "npx",
       "args": [
-        "${CLAUDE_PLUGIN_ROOT}/bin/mcp.js"
+        "-y",
+        "--package=@coreviz/cli",
+        "coreviz-mcp"
       ]
     }
   }

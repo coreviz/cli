@@ -9,6 +9,8 @@
     "coreviz-mcp": "./bin/mcp.js"
   },
   "scripts": {
+    "build": "esbuild bin/mcp.js --bundle --platform=node --format=esm --outfile=dist/mcp.js --banner:js=\"#!/usr/bin/env node\"",
+    "prepublishOnly": "npm run build",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "repository": {
@@ -38,5 +40,8 @@
     "dotenv": "^17.2.3",
     "open": "^11.0.0",
     "yocto-spinner": "^1.0.0"
+  },
+  "devDependencies": {
+    "esbuild": "^0.27.4"
   }
 }
