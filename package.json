@@ -1,6 +1,6 @@
 {
   "name": "@coreviz/cli",
-  "version": "1.5.0",
+  "version": "1.5.1",
   "type": "module",
   "description": "CoreViz CLI tool",
   "main": "index.js",
