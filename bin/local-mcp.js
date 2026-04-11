@@ -30,14 +30,9 @@ import { CoreViz } from '@coreviz/sdk';
 import { registerLocalTools } from '../lib/local-mcp-tools.js';
 import {
     loadSyncState,
-    saveSyncState,
-    findUnsyncedFiles,
-    hashFile,
-    markSynced,
-    setEnriched,
-    collectionNameFromDir,
+    scanMediaFiles,
+    getSyncedFiles,
 } from '../lib/local-sync.js';
-import { join } from 'path';
 
 const log = (msg) => process.stderr.write(`[coreviz-local] ${msg}\n`);
 
@@ -89,96 +84,19 @@ const sdk = new CoreViz({
     baseUrl,
 });
 
-// ── Startup sync ──────────────────────────────────────────────────────────────
+// ── Startup scan (read-only, no uploads) ─────────────────────────────────────
 
-async function fetchEnrichment(mediaId) {
-    try {
-        const media = await sdk.media.get(mediaId);
-        return {
-            description: media.metadata?.description ?? null,
-            tags: media.metadata?.tags ?? null,
-            objects: media.frames ? media.frames.flatMap(f => f.objects || []) : [],
-            width: media.width ?? null,
-            height: media.height ?? null,
-            blobUrl: media.blob ?? null,
-        };
-    } catch {
-        return null;
-    }
-}
-
-async function initialSync() {
-    log(`Syncing folder: ${targetDir}`);
+function initialScan() {
     const state = loadSyncState(targetDir);
+    const allFiles = scanMediaFiles(targetDir);
+    const synced = getSyncedFiles(state);
+    const unsyncedCount = allFiles.length - synced.length;
 
-    // Create collection if this is the first time
-    if (!state.collectionId) {
-        const name = collectionNameFromDir(targetDir);
-        log(`Creating CoreViz collection: "${name}"`);
-        const collection = await sdk.collections.create(name, '📁');
-        state.collectionId = collection.id;
-        state.collectionName = collection.name;
-        log(`Collection created: ${collection.id}`);
-    } else {
-        log(`Using existing collection: ${state.collectionId} (${state.collectionName})`);
+    log(`Folder: ${targetDir}`);
+    log(`Found ${allFiles.length} media file(s): ${synced.length} already synced to CoreViz, ${unsyncedCount} not yet uploaded`);
+    if (unsyncedCount > 0) {
+        log(`Unsynced files will NOT be uploaded until you explicitly call upload_file or sync_folder`);
     }
-
-    // Find files that need uploading
-    const toUpload = findUnsyncedFiles(targetDir, state);
-    log(`Found ${toUpload.length} file(s) to upload`);
-
-    let uploaded = 0;
-    let failed = 0;
-
-    for (const filename of toUpload) {
-        try {
-            const fullPath = join(targetDir, filename);
-            const hash = hashFile(fullPath);
-
-            // Determine parent ltree path for subfolders
-            const subdir = dirname(filename);
-            let uploadPath = state.collectionId;
-            if (subdir && subdir !== '.') {
-                const folder = await sdk.folders.create(state.collectionId, subdir, state.collectionId, true);
-                uploadPath = folder.path;
-            }
-
-            const result = await sdk.media.upload(fullPath, {
-                collectionId: state.collectionId,
-                path: uploadPath,
-                name: basename(filename),
-            });
-
-            markSynced(state, filename, result.mediaId, hash);
-
-            // Pull enrichment (best-effort)
-            const enriched = await fetchEnrichment(result.mediaId);
-            if (enriched) setEnriched(state, filename, enriched);
-
-            uploaded++;
-            log(`  ✓ ${filename}`);
-        } catch (err) {
-            failed++;
-            log(`  ✗ ${filename}: ${err?.message || err}`);
-        }
-    }
-
-    // Pull enrichment for any already-synced files that are missing it
-    let enriched = 0;
-    for (const [filename, entry] of Object.entries(state.files)) {
-        if (entry.mediaId && !entry.enriched) {
-            const data = await fetchEnrichment(entry.mediaId);
-            if (data) {
-                setEnriched(state, filename, data);
-                enriched++;
-            }
-        }
-    }
-
-    saveSyncState(targetDir, state);
-
-    const totalSynced = Object.values(state.files).filter(f => f.mediaId).length;
-    log(`Sync complete: ${uploaded} uploaded, ${enriched} enriched, ${failed} failed, ${totalSynced} total synced`);
 
     return state;
 }
@@ -186,8 +104,8 @@ async function initialSync() {
 // ── Main ──────────────────────────────────────────────────────────────────────
 
 async function main() {
-    // Run initial sync before accepting MCP connections
-    await initialSync();
+    // Scan only — no uploads without explicit user action
+    initialScan();
 
     const server = new McpServer({
         name: 'coreviz-local',
