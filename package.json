@@ -10,7 +10,7 @@
     "coreviz-local-mcp": "./bin/local-mcp.js"
   },
   "scripts": {
-    "build": "esbuild bin/mcp.js --bundle --platform=node --format=esm --outfile=dist/mcp.js --banner:js=\"#!/usr/bin/env node\" --external:onnxruntime-node --external:onnxruntime-web",
+    "build": "esbuild bin/mcp.js --bundle --platform=node --format=esm --outfile=dist/mcp.js --banner:js=\"#!/usr/bin/env node\" --external:onnxruntime-node --external:onnxruntime-web && esbuild bin/local-mcp.js --bundle --platform=node --format=esm --outfile=dist/local-mcp.js --banner:js=\"#!/usr/bin/env node\" --external:onnxruntime-node --external:onnxruntime-web",
     "prepublishOnly": "npm run build",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
@@ -31,7 +31,7 @@
   "homepage": "https://github.com/CoreViz/cli#readme",
   "dependencies": {
     "@clack/prompts": "^0.11.0",
-    "@coreviz/sdk": "^1.1.2",
+    "@coreviz/sdk": "^1.1.4",
     "@modelcontextprotocol/sdk": "^1.27.1",
     "better-auth": "^1.4.2",
     "better-sqlite3": "^12.4.6",

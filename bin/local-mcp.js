@@ -11,14 +11,14 @@
  *     "mcpServers": {
  *       "coreviz-local": {
  *         "command": "npx",
- *         "args": ["@coreviz/cli", "local-mcp"],
- *         "env": { "COREVIZ_API_KEY": "your-key" }
+ *         "args": ["@coreviz/cli", "local-mcp"]
  *       }
  *     }
  *   }
  *
  * The server defaults to the directory where Claude Code is open (CWD).
  * Override with --dir /path/to/folder.
+ * Authenticate with `coreviz login` or set COREVIZ_API_KEY.
  */
 
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
@@ -34,7 +34,7 @@ import {
     getSyncedFiles,
 } from '../lib/local-sync.js';
 
-const log = (msg) => process.stderr.write(`[coreviz-local] ${msg}\n`);
+export const log = (msg) => process.stderr.write(`[coreviz-local] ${msg}\n`);
 
 // ── Parse CLI args ────────────────────────────────────────────────────────────
 
@@ -64,25 +64,36 @@ Environment:
     process.exit(0);
 }
 
-const targetDir = resolve(args.dir || process.cwd());
+export const targetDir = resolve(args.dir || process.cwd());
+export const baseUrl = process.env.COREVIZ_API_URL || 'https://lab.coreviz.io';
+export const config = new Conf({ projectName: 'coreviz-cli' });
 
-// ── Auth ──────────────────────────────────────────────────────────────────────
+// ── Mutable SDK context ───────────────────────────────────────────────────────
+// Passed by reference to registerLocalTools so the login tool can replace the
+// SDK instance after a successful device auth flow without restarting the server.
 
-const config = new Conf({ projectName: 'coreviz-cli' });
-const session = config.get('session');
-const token = session?.access_token;
-const apiKey = process.env.COREVIZ_API_KEY;
-const baseUrl = process.env.COREVIZ_API_URL || 'https://lab.coreviz.io';
+export const ctx = { sdk: null };
 
-if (!token && !apiKey) {
-    log('Not authenticated. Run `coreviz login` or set COREVIZ_API_KEY.');
-    process.exit(1);
+function buildSdk(token, apiKey) {
+    return new CoreViz({
+        ...(token ? { token } : { apiKey }),
+        baseUrl,
+    });
 }
 
-const sdk = new CoreViz({
-    ...(token ? { token } : { apiKey }),
-    baseUrl,
-});
+function initSdkFromStoredCreds() {
+    const session = config.get('session');
+    const token = session?.access_token;
+    const apiKey = process.env.COREVIZ_API_KEY;
+    if (token || apiKey) {
+        ctx.sdk = buildSdk(token, apiKey);
+        return true;
+    }
+    return false;
+}
+
+// Export so the login tool can call this after a successful auth
+export { buildSdk };
 
 // ── Startup scan (read-only, no uploads) ─────────────────────────────────────
 
@@ -97,14 +108,16 @@ function initialScan() {
     if (unsyncedCount > 0) {
         log(`Unsynced files will NOT be uploaded until you explicitly call upload_file or sync_folder`);
     }
-
-    return state;
 }
 
 // ── Main ──────────────────────────────────────────────────────────────────────
 
 async function main() {
-    // Scan only — no uploads without explicit user action
+    const authed = initSdkFromStoredCreds();
+    if (!authed) {
+        log('No credentials found. Use the login tool to authenticate, or set COREVIZ_API_KEY.');
+    }
+
     initialScan();
 
     const server = new McpServer({
@@ -113,7 +126,7 @@ async function main() {
         description: `Local media folder assistant for: ${basename(targetDir)}`,
     });
 
-    registerLocalTools(server, sdk, targetDir);
+    registerLocalTools(server, ctx, targetDir);
 
     const transport = new StdioServerTransport();
     await server.connect(transport);

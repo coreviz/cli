@@ -203,7 +203,7 @@ Open Claude Code in any folder of photos or videos and get instant AI superpower
 **How it works:**
 1. On startup it scans your folder and reports what it finds — nothing is uploaded yet.
 2. When you ask Claude to search, analyze, or edit a file, it will tell you the file needs to go to CoreViz and ask your permission first.
-3. Once uploaded, CoreViz indexes each file (CLIP embeddings, auto-descriptions, object detection). That metadata is cached locally in `.coreviz/local-sync.json` so future operations don't need to re-analyze.
+3. Once uploaded, CoreViz indexes each file (embeddings, auto-descriptions, object detection). That metadata is cached locally in `.coreviz/local-sync.json` so future operations don't need to re-analyze.
 4. File organization (folder creation, moves, renames) happens on disk and mirrors to the cloud simultaneously.
 
 #### Setup
@@ -215,10 +215,23 @@ Add to your project's `.mcp.json` (or global MCP config):
   "mcpServers": {
     "coreviz-local": {
       "command": "npx",
+      "args": ["coreviz-local-mcp"]
+    }
+  }
+}
+```
+
+No API key required in the config — run `coreviz login` once beforehand, or use the `login` tool directly inside Claude Code for an interactive browser-based auth flow.
+
+Alternatively, pass a key via environment variable:
+
+```json
+{
+  "mcpServers": {
+    "coreviz-local": {
+      "command": "npx",
       "args": ["coreviz-local-mcp"],
-      "env": {
-        "COREVIZ_API_KEY": "your-api-key"
-      }
+      "env": { "COREVIZ_API_KEY": "your-api-key" }
     }
   }
 }
@@ -233,6 +246,14 @@ The server automatically targets the directory where Claude Code is open. Overri
 ```
 
 #### Available Tools
+
+**Account**
+
+| Tool | Description |
+|------|-------------|
+| `login` | Authenticate with CoreViz via device authorization (browser flow — no API key needed) |
+| `whoami` | Show current user, organization, and which collection this folder is linked to |
+| `switch_org` | List available organizations and change which one files sync to |
 
 **Discovery**
 
