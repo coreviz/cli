@@ -685,7 +685,7 @@ collectionsCmd.command('get <collectionId>')
 
 collectionsCmd.command('create <name>')
     .description('Create a new collection')
-    .option('--icon <icon>', 'Icon for the collection (emoji or icon name)')
+    .option('--icon <icon>', 'Icon for the collection (lucide icon name)')
     .option('--quiet', 'Output raw JSON')
     .action(async (name, options) => {
         if (!options.quiet) intro(chalk.bgHex('#663399').white('CoreViz'));

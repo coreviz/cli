@@ -138,55 +138,44 @@ Check login status:
 npx @coreviz/cli whoami
 ```
 
-## MCP Server (Claude Code Integration)
+## MCP Servers (Claude Code Integration)
 
-`@coreviz/cli` includes a built-in MCP server that exposes your CoreViz visual library as tools for Claude Code and other MCP-compatible AI agents — turning CoreViz into a **visual memory** for your AI workflows.
+`@coreviz/cli` ships two MCP servers that expose CoreViz as tools for Claude Code and other MCP-compatible AI agents.
 
-### Setup
+| Server | Binary | Purpose |
+|--------|--------|---------|
+| **Cloud library** | `coreviz-mcp` | Manage your full CoreViz cloud library — collections, search, tagging, uploads |
+| **Local folder** | `coreviz-local-mcp` | Work with a local folder of photos/videos using CoreViz AI — feels local, processes in the cloud |
 
-1. Login (if you haven't already):
+---
+
+### Cloud Library MCP
+
+Connects Claude Code to your entire CoreViz visual library. Best for managing large collections, bulk operations, and cross-collection search.
+
+#### Setup
+
+1. Login:
    ```bash
    npx @coreviz/cli login
    ```
 
-2. Connect to your MCP client:
+2. Add to `~/.claude/settings.json` (Claude Code) or `~/Library/Application Support/Claude/claude_desktop_config.json` (Claude Desktop):
 
-**Claude Code** — Install the plugin (recommended):
+   ```json
+   {
+     "mcpServers": {
+       "coreviz": {
+         "command": "npx",
+         "args": ["coreviz-mcp"]
+       }
+     }
+   }
+   ```
 
-```bash
-claude plugin marketplace add coreviz/cli
-claude plugin install coreviz@coreviz
-```
+3. Run `/mcp` in Claude Code to confirm the connection.
 
-Or configure MCP manually in `~/.claude/settings.json`:
-
-```json
-{
-  "mcpServers": {
-    "coreviz": {
-      "command": "npx",
-      "args": ["coreviz-mcp"]
-    }
-  }
-}
-```
-
-**Claude Desktop** — Add to `~/Library/Application Support/Claude/claude_desktop_config.json`:
-
-```json
-{
-  "mcpServers": {
-    "coreviz": {
-      "command": "npx",
-      "args": ["coreviz-mcp"]
-    }
-  }
-}
-```
-
-3. In Claude Code, run `/mcp` to confirm the server is connected.
-
-### Available MCP Tools
+#### Available Tools
 
 | Tool | Description |
 |------|-------------|
@@ -205,6 +194,138 @@ Or configure MCP manually in `~/.claude/settings.json`:
 | `remove_tag` | Remove a tag from a media item |
 | `upload_media` | Upload a local photo or video file to a collection |
 
+---
+
+### Local Folder MCP
+
+Open Claude Code in any folder of photos or videos and get instant AI superpowers — semantic search, auto-tagging, smart organization, and image editing — all powered by CoreViz cloud but operating on your local files.
+
+**How it works:**
+1. On startup it scans your folder and reports what it finds — nothing is uploaded yet.
+2. When you ask Claude to search, analyze, or edit a file, it will tell you the file needs to go to CoreViz and ask your permission first.
+3. Once uploaded, CoreViz indexes each file (embeddings, auto-descriptions, object detection). That metadata is cached locally in `.coreviz/local-sync.json` so future operations don't need to re-analyze.
+4. File organization (folder creation, moves, renames) happens on disk and mirrors to the cloud simultaneously.
+
+#### Setup
+
+Add to your project's `.mcp.json` (or global MCP config):
+
+```json
+{
+  "mcpServers": {
+    "coreviz-local": {
+      "command": "npx",
+      "args": ["coreviz-local-mcp"]
+    }
+  }
+}
+```
+
+No API key required in the config — run `coreviz login` once beforehand, or use the `login` tool directly inside Claude Code for an interactive browser-based auth flow.
+
+Alternatively, pass a key via environment variable:
+
+```json
+{
+  "mcpServers": {
+    "coreviz-local": {
+      "command": "npx",
+      "args": ["coreviz-local-mcp"],
+      "env": { "COREVIZ_API_KEY": "your-api-key" }
+    }
+  }
+}
+```
+
+The server automatically targets the directory where Claude Code is open. Override with `--dir`:
+
+```json
+{
+  "args": ["coreviz-local-mcp", "--dir", "/path/to/photos"]
+}
+```
+
+#### Available Tools
+
+**Account**
+
+| Tool | Description |
+|------|-------------|
+| `login` | Authenticate with CoreViz via device authorization (browser flow — no API key needed) |
+| `whoami` | Show current user, organization, and which collection this folder is linked to |
+| `switch_org` | List available organizations and change which one files sync to |
+
+**Discovery**
+
+| Tool | Description |
+|------|-------------|
+| `list_files` | List all files in the folder with cached AI metadata — no cloud required |
+| `search_files` | Semantic search across uploaded files |
+| `get_file` | Full details for a file: description, tags, objects, blob URL |
+| `upload_file` | Upload a single file to CoreViz (asks user consent first) |
+| `sync_folder` | Upload all new/changed files and refresh enriched metadata |
+
+**Organization**
+
+| Tool | Description |
+|------|-------------|
+| `create_folder` | Create a subfolder on disk and in CoreViz |
+| `move_file` | Move a file to a subfolder (disk + cloud) |
+| `rename_file` | Rename a file (disk + cloud) |
+
+**Tagging**
+
+| Tool | Description |
+|------|-------------|
+| `add_tag` | Add a label+value tag to a file |
+| `remove_tag` | Remove a specific tag |
+| `get_tags` | Get all tags aggregated across the folder |
+| `bulk_tag` | Apply a tag to multiple files at once |
+
+**AI**
+
+| Tool | Description |
+|------|-------------|
+| `analyze_image` | Describe an image with AI; result cached locally |
+| `find_similar` | Find visually similar images in the folder |
+| `edit_image` | AI-edit an image and save the result to disk |
+| `auto_tag_image` | AI-generate and apply tags to an image |
+
+#### Example session
+
+```
+User:  What photos do I have?
+→ list_files — returns all filenames with cached descriptions (no upload needed)
+
+User:  Organize the basketball photos by jersey number
+→ list_files shows descriptions like "player #23 driving to the hoop"
+→ create_folder("23"), move_file("action.jpg", "23"), ... — zero re-analysis
+
+User:  Find all photos of someone dunking
+→ search_files("dunking") — semantic search on uploaded files
+
+User:  Edit hero-shot.jpg to increase the contrast
+→ edit_image("hero-shot.jpg", ...) — saves hero-shot-edited.jpg to disk
+```
+
+---
+
+### Authentication
+
+Both servers support the same auth methods:
+
+```bash
+# Option 1: interactive login (stored in ~/.config/coreviz-cli/)
+npx @coreviz/cli login
+
+# Option 2: environment variable
+COREVIZ_API_KEY=your_key npx coreviz-mcp
+COREVIZ_API_KEY=your_key npx coreviz-local-mcp
+
+# Option 3: override API endpoint (for self-hosted / local dev)
+COREVIZ_API_URL=http://localhost:3000 npx coreviz-mcp
+```
+
 ### Local development override
 
 ```json
@@ -213,17 +334,15 @@ Or configure MCP manually in `~/.claude/settings.json`:
     "coreviz": {
       "command": "node",
       "args": ["/path/to/@coreviz/cli/bin/mcp.js"],
-      "env": {
-        "COREVIZ_API_URL": "http://localhost:3000"
-      }
+      "env": { "COREVIZ_API_URL": "http://localhost:3000" }
+    },
+    "coreviz-local": {
+      "command": "node",
+      "args": ["/path/to/@coreviz/cli/bin/local-mcp.js"],
+      "env": { "COREVIZ_API_URL": "http://localhost:3000" }
     }
   }
 }
-```
-
-You can also authenticate via environment variable instead of `coreviz login`:
-```bash
-COREVIZ_API_KEY=your_key npx coreviz-mcp
 ```
 
 ---
@@ -241,7 +360,12 @@ COREVIZ_API_KEY=your_key npx coreviz-mcp
    node bin/cli.js --help
    ```
 
-3. Run local MCP server:
+3. Run cloud MCP server:
    ```bash
    node bin/mcp.js
+   ```
+
+4. Run local-folder MCP server:
+   ```bash
+   node bin/local-mcp.js --dir /path/to/photos
    ```
