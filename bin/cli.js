@@ -620,4 +620,433 @@ function readImageAsBase64(imagePath) {
     return `data:image/${path.extname(imagePath).slice(1) || 'jpeg'};base64,${imageBuffer.toString('base64')}`;
 }
 
+// ── Library management helpers ───────────────────────────────────────────────
+
+function getSDK() {
+    const session = config.get('session');
+    const token = session?.access_token;
+    const apiKey = process.env.COREVIZ_API_KEY;
+    const baseUrl = process.env.COREVIZ_API_URL || 'https://lab.coreviz.io';
+
+    if (!token && !apiKey) {
+        console.error('Not authenticated. Run `coreviz login` first or set COREVIZ_API_KEY.');
+        process.exit(1);
+    }
+
+    return new CoreViz({ ...(token ? { token } : { apiKey }), baseUrl });
+}
+
+function printResult(data, quiet) {
+    if (quiet) {
+        console.log(typeof data === 'string' ? data : JSON.stringify(data));
+    } else {
+        console.log(JSON.stringify(data, null, 2));
+    }
+}
+
+function handleError(err, quiet) {
+    const msg = err?.message || String(err);
+    if (quiet) {
+        console.error(msg);
+    } else {
+        cancel(msg);
+    }
+    process.exit(1);
+}
+
+// ── collections ──────────────────────────────────────────────────────────────
+
+const collectionsCmd = program.command('collections').description('Manage CoreViz collections');
+
+collectionsCmd.command('list')
+    .description('List all collections in your workspace')
+    .option('--quiet', 'Output raw JSON')
+    .action(async (options) => {
+        if (!options.quiet) intro(chalk.bgHex('#663399').white('CoreViz'));
+        try {
+            const sdk = getSDK();
+            const collections = await sdk.collections.list();
+            printResult(collections, options.quiet);
+            if (!options.quiet) outro(chalk.green(`${collections.length} collection(s)`));
+        } catch (err) { handleError(err, options.quiet); }
+    });
+
+collectionsCmd.command('get <collectionId>')
+    .description('Get details for a collection')
+    .option('--quiet', 'Output raw JSON')
+    .action(async (collectionId, options) => {
+        if (!options.quiet) intro(chalk.bgHex('#663399').white('CoreViz'));
+        try {
+            const sdk = getSDK();
+            const collection = await sdk.collections.get(collectionId);
+            printResult(collection, options.quiet);
+        } catch (err) { handleError(err, options.quiet); }
+    });
+
+collectionsCmd.command('create <name>')
+    .description('Create a new collection')
+    .option('--icon <icon>', 'Icon for the collection (emoji or icon name)')
+    .option('--quiet', 'Output raw JSON')
+    .action(async (name, options) => {
+        if (!options.quiet) intro(chalk.bgHex('#663399').white('CoreViz'));
+        try {
+            const sdk = getSDK();
+            const collection = await sdk.collections.create(name, options.icon);
+            printResult(collection, options.quiet);
+            if (!options.quiet) outro(chalk.green(`✅ Collection created: ${collection.id}`));
+        } catch (err) { handleError(err, options.quiet); }
+    });
+
+collectionsCmd.command('update <collectionId>')
+    .description('Update a collection\'s name or icon')
+    .option('--name <name>', 'New name')
+    .option('--icon <icon>', 'New icon')
+    .option('--quiet', 'Output raw JSON')
+    .action(async (collectionId, options) => {
+        if (!options.quiet) intro(chalk.bgHex('#663399').white('CoreViz'));
+        try {
+            const sdk = getSDK();
+            const collection = await sdk.collections.update(collectionId, { name: options.name, icon: options.icon });
+            printResult(collection, options.quiet);
+            if (!options.quiet) outro(chalk.green(`✅ Collection updated`));
+        } catch (err) { handleError(err, options.quiet); }
+    });
+
+// ── media ────────────────────────────────────────────────────────────────────
+
+const mediaCmd = program.command('media').description('Manage media items');
+
+mediaCmd.command('browse <collectionId>')
+    .description('Browse media items and folders in a collection')
+    .option('--path <path>', 'ltree path to browse (e.g. "collId.folderId")')
+    .option('--limit <n>', 'Max items to return', '50')
+    .option('--offset <n>', 'Pagination offset', '0')
+    .option('--type <type>', 'Filter by type: image, video, folder, all')
+    .option('--q <query>', 'Text/semantic search query')
+    .option('--tags <tags>', 'Comma-separated tag label filter')
+    .option('--recursive', 'List all descendants recursively')
+    .option('--quiet', 'Output raw JSON')
+    .action(async (collectionId, options) => {
+        if (!options.quiet) intro(chalk.bgHex('#663399').white('CoreViz'));
+        try {
+            const sdk = getSDK();
+            const opts = {
+                limit: Number(options.limit),
+                offset: Number(options.offset),
+                ...(options.path && { path: options.path }),
+                ...(options.type && { type: options.type }),
+                ...(options.q && { q: options.q }),
+                ...(options.tags && { tags: options.tags }),
+                ...(options.recursive && { recursive: true }),
+            };
+            const result = await sdk.media.browse(collectionId, opts);
+            printResult(result, options.quiet);
+            if (!options.quiet) outro(chalk.green(`${result.media.length} item(s)`));
+        } catch (err) { handleError(err, options.quiet); }
+    });
+
+mediaCmd.command('search <query>')
+    .description('Semantically search media across your workspace')
+    .option('--limit <n>', 'Max results', '10')
+    .option('--quiet', 'Output raw JSON')
+    .action(async (query, options) => {
+        if (!options.quiet) intro(chalk.bgHex('#663399').white('CoreViz'));
+        try {
+            const sdk = getSDK();
+            const results = await sdk.media.search(query, { limit: Number(options.limit) });
+            printResult(results, options.quiet);
+            if (!options.quiet) outro(chalk.green(`${results.length} result(s)`));
+        } catch (err) { handleError(err, options.quiet); }
+    });
+
+mediaCmd.command('get <mediaId>')
+    .description('Get full details for a media item')
+    .option('--quiet', 'Output raw JSON')
+    .action(async (mediaId, options) => {
+        if (!options.quiet) intro(chalk.bgHex('#663399').white('CoreViz'));
+        try {
+            const sdk = getSDK();
+            const media = await sdk.media.get(mediaId);
+            printResult(media, options.quiet);
+        } catch (err) { handleError(err, options.quiet); }
+    });
+
+mediaCmd.command('upload <filePath> <collectionId>')
+    .description('Upload a file to a collection')
+    .option('--path <path>', 'Destination ltree folder path')
+    .option('--name <name>', 'Custom file name in CoreViz')
+    .option('--quiet', 'Output raw JSON')
+    .action(async (filePath, collectionId, options) => {
+        if (!options.quiet) intro(chalk.bgHex('#663399').white('CoreViz'));
+        if (!fs.existsSync(filePath)) {
+            handleError(new Error(`File not found: ${filePath}`), options.quiet);
+        }
+        let spinner;
+        if (!options.quiet) {
+            spinner = yoctoSpinner({ text: 'Uploading...' });
+            spinner.start();
+        }
+        try {
+            const sdk = getSDK();
+            const result = await sdk.media.upload(filePath, { collectionId, path: options.path, name: options.name });
+            if (spinner) spinner.stop();
+            printResult(result, options.quiet);
+            if (!options.quiet) outro(chalk.green(`✅ Uploaded: ${result.mediaId}`));
+        } catch (err) {
+            if (spinner) spinner.stop();
+            handleError(err, options.quiet);
+        }
+    });
+
+mediaCmd.command('rename <mediaId> <name>')
+    .description('Rename a media item')
+    .option('--quiet', 'Output raw JSON')
+    .action(async (mediaId, name, options) => {
+        if (!options.quiet) intro(chalk.bgHex('#663399').white('CoreViz'));
+        try {
+            const sdk = getSDK();
+            const media = await sdk.media.rename(mediaId, name);
+            printResult(media, options.quiet);
+            if (!options.quiet) outro(chalk.green(`✅ Renamed`));
+        } catch (err) { handleError(err, options.quiet); }
+    });
+
+mediaCmd.command('move <mediaId> <destinationPath>')
+    .description('Move a media item to a different folder (ltree path)')
+    .option('--quiet', 'Output raw JSON')
+    .action(async (mediaId, destinationPath, options) => {
+        if (!options.quiet) intro(chalk.bgHex('#663399').white('CoreViz'));
+        try {
+            const sdk = getSDK();
+            const result = await sdk.media.move(mediaId, destinationPath);
+            printResult(result, options.quiet);
+            if (!options.quiet) outro(chalk.green(`✅ Moved`));
+        } catch (err) { handleError(err, options.quiet); }
+    });
+
+mediaCmd.command('delete <mediaId>')
+    .description('Permanently delete a media item')
+    .option('--quiet', 'Suppress UI output')
+    .action(async (mediaId, options) => {
+        if (!options.quiet) intro(chalk.bgHex('#663399').white('CoreViz'));
+        try {
+            const sdk = getSDK();
+            await sdk.media.delete(mediaId);
+            if (options.quiet) {
+                console.log('deleted');
+            } else {
+                outro(chalk.green(`✅ Deleted ${mediaId}`));
+            }
+        } catch (err) { handleError(err, options.quiet); }
+    });
+
+mediaCmd.command('find-similar <collectionId> <objectId>')
+    .description('Find visually similar media using a detected object ID')
+    .option('--model <model>', 'Similarity model: faces, objects, shoeprints')
+    .option('--limit <n>', 'Max results', '10')
+    .option('--quiet', 'Output raw JSON')
+    .action(async (collectionId, objectId, options) => {
+        if (!options.quiet) intro(chalk.bgHex('#663399').white('CoreViz'));
+        try {
+            const sdk = getSDK();
+            const result = await sdk.media.findSimilar(collectionId, objectId, {
+                model: options.model,
+                limit: Number(options.limit),
+            });
+            printResult(result, options.quiet);
+            if (!options.quiet) outro(chalk.green(`${result.media.length} similar item(s)`));
+        } catch (err) { handleError(err, options.quiet); }
+    });
+
+// ── media versions ────────────────────────────────────────────────────────────
+
+const versionsCmd = mediaCmd.command('versions').description('Manage media versions');
+
+versionsCmd.command('list <mediaId>')
+    .description('List all versions of a media item')
+    .option('--quiet', 'Output raw JSON')
+    .action(async (mediaId, options) => {
+        if (!options.quiet) intro(chalk.bgHex('#663399').white('CoreViz'));
+        try {
+            const sdk = getSDK();
+            const versions = await sdk.media.listVersions(mediaId);
+            printResult(versions, options.quiet);
+            if (!options.quiet) outro(chalk.green(`${versions.length} version(s)`));
+        } catch (err) { handleError(err, options.quiet); }
+    });
+
+versionsCmd.command('select <versionId>')
+    .description('Mark a version as the active version')
+    .option('--quiet', 'Suppress UI output')
+    .action(async (versionId, options) => {
+        if (!options.quiet) intro(chalk.bgHex('#663399').white('CoreViz'));
+        try {
+            const sdk = getSDK();
+            await sdk.media.selectVersion(versionId);
+            if (options.quiet) {
+                console.log('selected');
+            } else {
+                outro(chalk.green(`✅ Version ${versionId} is now active`));
+            }
+        } catch (err) { handleError(err, options.quiet); }
+    });
+
+versionsCmd.command('delete <rootMediaId> <versionId>')
+    .description('Delete a specific version of a media item')
+    .option('--quiet', 'Output raw JSON')
+    .action(async (rootMediaId, versionId, options) => {
+        if (!options.quiet) intro(chalk.bgHex('#663399').white('CoreViz'));
+        try {
+            const sdk = getSDK();
+            const result = await sdk.media.deleteVersion(rootMediaId, versionId);
+            printResult(result, options.quiet);
+            if (!options.quiet) outro(chalk.green(result.promotedId ? `✅ Deleted. Promoted: ${result.promotedId}` : `✅ Deleted`));
+        } catch (err) { handleError(err, options.quiet); }
+    });
+
+// ── media tags ────────────────────────────────────────────────────────────────
+
+const tagsSubCmd = mediaCmd.command('tags').description('Manage tags on a media item');
+
+tagsSubCmd.command('add <mediaId> <label> <value>')
+    .description('Add a tag to a media item')
+    .option('--quiet', 'Suppress UI output')
+    .action(async (mediaId, label, value, options) => {
+        if (!options.quiet) intro(chalk.bgHex('#663399').white('CoreViz'));
+        try {
+            const sdk = getSDK();
+            await sdk.media.addTag(mediaId, label, value);
+            if (options.quiet) {
+                console.log('added');
+            } else {
+                outro(chalk.green(`✅ Tag added: ${label}=${value}`));
+            }
+        } catch (err) { handleError(err, options.quiet); }
+    });
+
+tagsSubCmd.command('remove <mediaId> <label> <value>')
+    .description('Remove a specific tag value from a media item')
+    .option('--quiet', 'Suppress UI output')
+    .action(async (mediaId, label, value, options) => {
+        if (!options.quiet) intro(chalk.bgHex('#663399').white('CoreViz'));
+        try {
+            const sdk = getSDK();
+            await sdk.media.removeTag(mediaId, label, value);
+            if (options.quiet) {
+                console.log('removed');
+            } else {
+                outro(chalk.green(`✅ Tag removed: ${label}=${value}`));
+            }
+        } catch (err) { handleError(err, options.quiet); }
+    });
+
+tagsSubCmd.command('remove-group <mediaId> <label>')
+    .description('Remove an entire tag group from a media item')
+    .option('--quiet', 'Suppress UI output')
+    .action(async (mediaId, label, options) => {
+        if (!options.quiet) intro(chalk.bgHex('#663399').white('CoreViz'));
+        try {
+            const sdk = getSDK();
+            await sdk.media.removeTagGroup(mediaId, label);
+            if (options.quiet) {
+                console.log('removed');
+            } else {
+                outro(chalk.green(`✅ Tag group removed: ${label}`));
+            }
+        } catch (err) { handleError(err, options.quiet); }
+    });
+
+tagsSubCmd.command('rename-group <mediaId> <oldLabel> <newLabel>')
+    .description('Rename a tag group, preserving all its values')
+    .option('--quiet', 'Suppress UI output')
+    .action(async (mediaId, oldLabel, newLabel, options) => {
+        if (!options.quiet) intro(chalk.bgHex('#663399').white('CoreViz'));
+        try {
+            const sdk = getSDK();
+            await sdk.media.renameTagGroup(mediaId, oldLabel, newLabel);
+            if (options.quiet) {
+                console.log('renamed');
+            } else {
+                outro(chalk.green(`✅ Tag group renamed: ${oldLabel} → ${newLabel}`));
+            }
+        } catch (err) { handleError(err, options.quiet); }
+    });
+
+// ── folders ──────────────────────────────────────────────────────────────────
+
+const foldersCmd = program.command('folders').description('Manage folders');
+
+foldersCmd.command('create <collectionId> <name>')
+    .description('Create a folder inside a collection')
+    .option('--path <path>', 'Parent ltree path (defaults to collection root)')
+    .option('--reuse', 'Return existing folder if one with the same name already exists (upsert)')
+    .option('--quiet', 'Output raw JSON')
+    .action(async (collectionId, name, options) => {
+        if (!options.quiet) intro(chalk.bgHex('#663399').white('CoreViz'));
+        try {
+            const sdk = getSDK();
+            const folder = await sdk.folders.create(collectionId, name, options.path, options.reuse);
+            printResult(folder, options.quiet);
+            if (!options.quiet) outro(chalk.green(`✅ Folder created: ${folder.id}`));
+        } catch (err) { handleError(err, options.quiet); }
+    });
+
+foldersCmd.command('get <folderId>')
+    .description('Get details for a folder')
+    .option('--quiet', 'Output raw JSON')
+    .action(async (folderId, options) => {
+        if (!options.quiet) intro(chalk.bgHex('#663399').white('CoreViz'));
+        try {
+            const sdk = getSDK();
+            const folder = await sdk.folders.get(folderId);
+            printResult(folder, options.quiet);
+        } catch (err) { handleError(err, options.quiet); }
+    });
+
+foldersCmd.command('update <folderId>')
+    .description('Update a folder\'s name or metadata')
+    .option('--name <name>', 'New folder name')
+    .option('--quiet', 'Output raw JSON')
+    .action(async (folderId, options) => {
+        if (!options.quiet) intro(chalk.bgHex('#663399').white('CoreViz'));
+        try {
+            const sdk = getSDK();
+            const folder = await sdk.folders.update(folderId, { name: options.name });
+            printResult(folder, options.quiet);
+            if (!options.quiet) outro(chalk.green(`✅ Folder updated`));
+        } catch (err) { handleError(err, options.quiet); }
+    });
+
+foldersCmd.command('delete <folderId>')
+    .description('Delete a folder and all its contents')
+    .option('--quiet', 'Suppress UI output')
+    .action(async (folderId, options) => {
+        if (!options.quiet) intro(chalk.bgHex('#663399').white('CoreViz'));
+        try {
+            const sdk = getSDK();
+            await sdk.folders.delete(folderId);
+            if (options.quiet) {
+                console.log('deleted');
+            } else {
+                outro(chalk.green(`✅ Folder deleted`));
+            }
+        } catch (err) { handleError(err, options.quiet); }
+    });
+
+// ── tags (collection-level) ──────────────────────────────────────────────────
+
+const collTagsCmd = program.command('tags').description('List tags across a collection');
+
+collTagsCmd.command('list <collectionId>')
+    .description('List all tag groups and values in a collection')
+    .option('--quiet', 'Output raw JSON')
+    .action(async (collectionId, options) => {
+        if (!options.quiet) intro(chalk.bgHex('#663399').white('CoreViz'));
+        try {
+            const sdk = getSDK();
+            const tags = await sdk.tags.list(collectionId);
+            printResult(tags, options.quiet);
+        } catch (err) { handleError(err, options.quiet); }
+    });
+
 program.parse(process.argv);
