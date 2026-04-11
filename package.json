@@ -6,7 +6,8 @@
   "main": "index.js",
   "bin": {
     "coreviz": "./bin/cli.js",
-    "coreviz-mcp": "./bin/mcp.js"
+    "coreviz-mcp": "./bin/mcp.js",
+    "coreviz-local-mcp": "./bin/local-mcp.js"
   },
   "scripts": {
     "build": "esbuild bin/mcp.js --bundle --platform=node --format=esm --outfile=dist/mcp.js --banner:js=\"#!/usr/bin/env node\" --external:onnxruntime-node --external:onnxruntime-web",
