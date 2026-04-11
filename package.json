@@ -9,7 +9,7 @@
     "coreviz-mcp": "./bin/mcp.js"
   },
   "scripts": {
-    "build": "esbuild bin/mcp.js --bundle --platform=node --format=esm --outfile=dist/mcp.js --banner:js=\"#!/usr/bin/env node\"",
+    "build": "esbuild bin/mcp.js --bundle --platform=node --format=esm --outfile=dist/mcp.js --banner:js=\"#!/usr/bin/env node\" --external:onnxruntime-node --external:onnxruntime-web",
     "prepublishOnly": "npm run build",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
